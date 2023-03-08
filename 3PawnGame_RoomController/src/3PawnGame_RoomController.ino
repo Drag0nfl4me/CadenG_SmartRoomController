@@ -5,76 +5,134 @@
  * Date: 03/01/2023
  */
 
-SYSTEM_MODE(MANUAL);
+SYSTEM_MODE(SEMI_AUTOMATIC);
 
 #include <IoTClassroom_CNM.h>
+#include <Adafruit_SSD1306.h>
 
-float rowsRead [3][3];
-float ead [3][3];
-int i,j,currentRow,currentColor;
-int pieceSide, photoRead;
-int colors [] {0,62309,59086,53714,48343,45120,42971};
-int redPiece,bluePiece;
+float nominalRead [3][3];
+float actualRead [3][3];
+int i,j,currentRow,currentColor, currentAngle;
+int pieceSide,redPiece,bluePiece;
+const int COLORS [] {0,62309,59086,53714,48343,45120,42971};
+const int SERVOANGLES [] {0,30,60,90,120,150,180};
 
 void checkPiecePos ();
 void rowSetup ();
 void determineAdvantage ();
 
+Servo servo1;
+Adafruit_SSD1306 display(D2);
+
 void setup() {
 
-  WiFi.on();
-  WiFi.setCredentials("IoTNetwork");
-  WiFi.connect();
-  while(WiFi.connecting()) {
-  delay(1);
-  }
+  // WiFi.on();
+  // WiFi.setCredentials("IoTNetwork");
+  // WiFi.connect();
+  // while(WiFi.connecting()) {
+  // delay(1);
+  // }
+
+  servo1.attach(A3);
+
+  display.begin(SSD1306_SWITCHCAPVCC,0x3C);
+  display.clearDisplay();
+  display.display();
+  display.drawLine(6,6,6,57,WHITE);
+  display.drawLine(57,6,57,57,WHITE);
+  display.drawLine(6,6,57,6,WHITE);
+  display.drawLine(6,57,57,57,WHITE);
+  display.fillRect(24,7,16,16,WHITE);
+  display.fillRect(7,24,16,16,WHITE);
+  display.fillRect(41,24,16,16,WHITE);
+  display.fillRect(24,41,16,16,WHITE);
+  display.setTextColor(WHITE);
+  display.setTextSize(1);
+  display.setCursor(68,16);
+  display.printf("red  = ");
+  display.setCursor(68,43);
+  display.printf("blue = ");
+  display.display();
 
   Serial.begin(9600);
+  waitFor(Serial.isConnected,10000);
+
   pinMode(A0,INPUT);
   pinMode(A1,INPUT);
   pinMode(A2,INPUT);
   pinMode(D8,OUTPUT);
   pinMode(D7,OUTPUT);
   pinMode(D6,OUTPUT);
-  waitFor(Serial.isConnected,10000);
 }
 
 void loop() {
-
   checkPiecePos();
   determineAdvantage();
-
-  if (redPiece > bluePiece) {currentColor = 3 - (redPiece - bluePiece);}
-  if (redPiece < bluePiece) {currentColor = 3 + (bluePiece - redPiece);}
-  if (redPiece == bluePiece) {currentColor = 3;}
-
-  if (rowsRead[0][0] == 2 || rowsRead[0][1] == 2 || rowsRead[0][2] == 2) {
-    setHue(3,false,colors[currentColor],100,255);
+  //victory
+  if (nominalRead[0][0] == 2 || nominalRead[0][1] == 2 || nominalRead[0][2] == 2) {
+    setHue(3,false,COLORS[currentColor],100,255);
+    servo1.write(0);
     delay(5000);
   }
-  if (rowsRead[2][0] == 1 || rowsRead[2][1] == 1 || rowsRead[2][2] == 1) {
+  if (nominalRead[2][0] == 1 || nominalRead[2][1] == 1 || nominalRead[2][2] == 1) {
     setHue(3,true,21485,100,255);
+    servo1.write(180);
     delay(5000);
   }
+  //on-going
   else {
-    setHue(3,true,colors[currentColor],100,255);
+    setHue(3,true,COLORS[currentColor],100,255);
+    servo1.write(SERVOANGLES[currentAngle]);
   }
-
-  Serial.printf("\nNumRed = %i NumBlue = %i",redPiece,bluePiece);
-  if (currentColor>6) {
-    currentColor = 0;
-  }
-
 }
 
 void determineAdvantage () {
+  //reset values
   redPiece = 0;
   bluePiece = 0;
+  //read number of red and blue pieces
   for (j=0;j<3;j++) {
     for (i=0;i<3;i++) {
-      if (rowsRead[j][i] == 1) {redPiece ++;}
-      if (rowsRead[j][i] == 2) {bluePiece ++;}
+      if (nominalRead[j][i] == 1) {redPiece ++;}
+      if (nominalRead[j][i] == 2) {bluePiece ++;}
     }
+  }
+  //adjust colors and servo angle
+  if (redPiece > bluePiece) {
+    currentColor = 3 - (redPiece - bluePiece); 
+    currentAngle = 3 - (redPiece - bluePiece);
+  }
+  if (redPiece < bluePiece) {
+    currentColor = 3 + (bluePiece - redPiece);
+    currentAngle = 3 + (bluePiece - redPiece);
+  }
+  if (redPiece == bluePiece) {
+    currentColor = 3;
+    currentAngle = 3;
+  }
+  Serial.printf("\nNumRed = %i NumBlue = %i",redPiece,bluePiece);
+}
+
+void checkPiecePos () {
+  //reads all piece positions and determines side
+  for (j=0;j<3;j++) {
+    currentRow = j;
+    rowSetup ();
+    delay(1000);
+    for (i=0;i<3;i++) {
+      nominalRead [i][j] = analogRead(i+17)/903.0;
+      actualRead [i][j] = nominalRead [i][j];
+      //converts to three values
+      if (nominalRead [i][j] > 1 && nominalRead [i][j] < 2) {nominalRead [i][j] = 1;}
+      if (nominalRead [i][j] > 2) {nominalRead [i][j] = 2;}
+      if (nominalRead [i][j] < 1) {nominalRead [i][j] = 0;}
+    }
+  }
+  for (i=2;i>=0;i--) {
+    Serial.printf("\ncol1 = %.2f col2 = %.2f col3 = %.2f",actualRead[i][0],actualRead[i][1],actualRead[i][2]);
+  }
+  for (i=2;i>=0;i--) {
+    Serial.printf("\nPieceSide = %.2f PieceSide = %.2f PieceSide = %.2f",nominalRead[i][0],nominalRead[i][1],nominalRead[i][2]);
   }
 }
 
@@ -87,13 +145,13 @@ void rowSetup () {
     digitalWrite(D7,LOW);
     digitalWrite(D6,LOW);
   }
-  if (currentRow == 1) {
+  if (currentRow == 1) { 
     pinMode(D8,INPUT);
     pinMode(D7,OUTPUT);
     pinMode(D6,INPUT);
     digitalWrite(D8,LOW);
     digitalWrite(D7,HIGH);
-    digitalWrite(D6,LOW);
+    digitalWrite(D6,LOW); 
   }
   if (currentRow == 2) {
     pinMode(D8,INPUT);
@@ -102,26 +160,5 @@ void rowSetup () {
     digitalWrite(D8,LOW);
     digitalWrite(D7,LOW);
     digitalWrite(D6,HIGH);
-  }
-}
-
-void checkPiecePos () {
-  for (j=0;j<3;j++) {
-    currentRow = j;
-    rowSetup ();
-    delay(1000);
-    for (i=0;i<3;i++) {
-      rowsRead [i][j] = analogRead(i+17)/903.0;
-      ead [i][j] = rowsRead [i][j];
-      if (rowsRead [i][j] > 1 && rowsRead [i][j] < 2) {rowsRead [i][j] = 1;}
-      if (rowsRead [i][j] > 2) {rowsRead [i][j] = 2;}
-      if (rowsRead [i][j] < 1) {rowsRead [i][j] = 0;}
-    }
-  }
-  for (i=2;i>=0;i--) {
-    Serial.printf("\ncol1 = %.2f col2 = %.2f col3 = %.2f",ead[i][0],ead[i][1],ead[i][2]);
-  }
-  for (i=2;i>=0;i--) {
-    Serial.printf("\nPieceSide = %.2f PieceSide = %.2f PieceSide = %.2f",rowsRead[i][0],rowsRead[i][1],rowsRead[i][2]);
   }
 }
