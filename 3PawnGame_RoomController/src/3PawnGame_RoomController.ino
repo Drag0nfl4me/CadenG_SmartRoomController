@@ -38,13 +38,13 @@ Adafruit_SSD1306 display(D2);
 
 void setup() {
 
-  WiFi.on();
-  WiFi.setCredentials("IoTNetwork");
-  WiFi.connect();
-  //forces the system to wait for the wifi to connect
-  while(WiFi.connecting()) {
-  delay(1);
-  }
+  // WiFi.on();
+  // WiFi.setCredentials("IoTNetwork");
+  // WiFi.connect();
+  // //forces the system to wait for the wifi to connect
+  // while(WiFi.connecting()) {
+  // delay(1);
+  // }
 
   neopix.setBrightness(8);
   neopix.show();
