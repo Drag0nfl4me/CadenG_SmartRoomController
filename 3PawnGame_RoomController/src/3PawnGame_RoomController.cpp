@@ -50,13 +50,13 @@ Adafruit_SSD1306 display(D2);
 
 void setup() {
 
-  // WiFi.on();
-  // WiFi.setCredentials("IoTNetwork");
-  // WiFi.connect();
-  // //forces the system to wait for the wifi to connect
-  // while(WiFi.connecting()) {
-  // delay(1);
-  // }
+  WiFi.on();
+  WiFi.setCredentials("IoTNetwork");
+  WiFi.connect();
+  //forces the system to wait for the wifi to connect
+  while(WiFi.connecting()) {
+  delay(1);
+  }
 
   neopix.setBrightness(8);
   neopix.show();
@@ -133,9 +133,9 @@ void determineAdvantage () {
   }
   Serial.printf("\nNumRed = %i NumBlue = %i",redPiece,bluePiece);
 }
-//reads the voltage of every square and stores them in an array. It then converts the stored floats into 3 integers
+//reads the voltage of every square and stores them in an array. It then converts the stored floats into 3 values
 void checkPiecePos () {
-  //reads all piece positions and determines side
+  //reads all piece positions and determines their side
   for (j=0;j<3;j++) {
     currentRow = j;
     rowSetup ();
@@ -156,7 +156,7 @@ void checkPiecePos () {
     Serial.printf("\nPieceSide = %.2f PieceSide = %.2f PieceSide = %.2f",nominalRead[i][0],nominalRead[i][1],nominalRead[i][2]);
   }
 }
-//switches the D pins between input/output and high/low turning one on at a time (setting to low is required for consistent values)
+//switches the D pins between input/output and high/low turning one on at a time (setting to low is required for consistent reading)
 void rowSetup () { 
   //first column
   if (currentRow == 0) {
@@ -186,7 +186,7 @@ void rowSetup () {
     digitalWrite(D6,HIGH);
   }
 }
-//resets the board on the dysplay (without showing changes)
+//resets the board on the display (without showing changes)
 void drawBoard () {
   display.clearDisplay();
   //left edge
@@ -220,18 +220,18 @@ void drawPieces () {
     k = 0;
     for (i=0;i<3;i++) {
       whiteBlack = !whiteBlack;
-      //checks if there is a red piece in the nominal read and puts it in the correct square
+      //checks if there is a red piece in the nominal read array and puts it in the correct square
       if (nominalRead [i][j] == 1) {
         display.fillCircle(piecePos[j][k],piecePos[j][k+1],4,whiteBlack);
         Serial.printf(" piece found");
       }
-      //checks if there is a blue piece in the nominal read and puts it in the correct square
+      //checks if there is a blue piece in the nominal read array and puts it in the correct square
       if (nominalRead [i][j] == 2) {
         display.fillTriangle(piecePos[j][k],piecePos[j][k+1]-4,piecePos[j][k]-4,piecePos[j][k+1]+4,piecePos[j][k]+4,piecePos[j][k+1]+4,whiteBlack);
         Serial.printf(" piece found");
       }
       Serial.printf("\nk = %i i = %i j = %i",k,i,j);
-      //this keeps x and y cordinates seperated in the array
+      //k increase keeps x and y cordinates seperated in the array
       k+=2;
     }
   }
