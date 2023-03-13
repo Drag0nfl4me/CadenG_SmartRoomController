@@ -19,12 +19,12 @@ OnShape
 * Modeled pawns that were designed to let in certain light levels
 * Modeled pawn prototypes that could complete resistors with any inserted resistor
 
+Adobe Illustrator
+* laser cut several board variations and a box
+
 ### Learning Objectives
 
 * Learn to compress code and make more efficient
 * Create my first project from scratch and get the results clost to or exactly what i'm looking for
-
-Adobe Illustrator
-* laser cut several board variations and a box
 
 #### Caden Gamache, 03/10/2023
